@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Wandermark – Icon Generator</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f0f9f2; color: #1a2e22; padding: 24px; max-width: 600px; margin: 0 auto; }
+  h1 { color: #2d9e5f; margin-bottom: 4px; }
+  p { color: #4a7259; margin-bottom: 20px; font-size: 0.9rem; }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0; }
+  .icon-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.75rem; color: #4a7259; }
+  canvas { border-radius: 22%; box-shadow: 0 2px 12px rgba(45,158,95,0.2); }
+  .btn { background: linear-gradient(135deg, #2d9e5f, #4dbb7a); color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 600; margin: 4px; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.9; }
+  .btn-secondary { background: white; color: #2d9e5f; border: 2px solid #2d9e5f; }
+  .steps { background: white; border: 1.5px solid rgba(45,158,95,0.2); border-radius: 14px; padding: 20px; margin-top: 24px; }
+  .steps h2 { color: #2d9e5f; font-size: 1rem; margin-bottom: 12px; }
+  .step { display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; line-height: 1.5; }
+  .step-num { background: #2d9e5f; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  code { background: #f0f9f2; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; color: #1a7a47; }
+</style>
+</head>
+<body>
+<h1>🌿 Wandermark Icon Generator</h1>
+<p>Click "Generate All Icons" to create every icon size needed for the Play Store and PWA.</p>
+
+<button class="btn" onclick="generateAll()">Generate All Icons</button>
+<button class="btn btn-secondary" onclick="downloadAll()">⬇️ Download All as ZIP</button>
+
+<div class="grid" id="grid"></div>
+
+<div class="steps">
+  <h2>📁 Where to put these files</h2>
+  <div class="step"><div class="step-num">1</div><div>Create a folder called <code>icons/</code> in the same folder as your <code>index.html</code></div></div>
+  <div class="step"><div class="step-num">2</div><div>Save each downloaded icon into that folder with the exact filename shown below each preview</div></div>
+  <div class="step"><div class="step-num">3</div><div>Your folder structure should be:<br><code>index.html</code><br><code>manifest.json</code><br><code>service-worker.js</code><br><code>icons/icon-192.png</code><br><code>icons/icon-512.png</code><br>... etc</div></div>
+  <div class="step"><div class="step-num">4</div><div>Upload all files to GitHub Pages or your hosting provider</div></div>
+  <div class="step"><div class="step-num">5</div><div>Go to <a href="https://pwabuilder.com" target="_blank" style="color:#2d9e5f">pwabuilder.com</a> and enter your site URL</div></div>
+</div>
+
+<script>
+const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+const canvases = {};
+
+function drawIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, size, size);
+  bg.addColorStop(0, '#1a7a47');
+  bg.addColorStop(0.6, '#2d9e5f');
+  bg.addColorStop(1, '#4dbb7a');
+
+  // Rounded rect background
+  const r = size * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size - r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size - r);
+  ctx.quadraticCurveTo(size, size, size - r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = bg;
+  ctx.fill();
+
+  // Subtle inner glow
+  const glow = ctx.createRadialGradient(size*0.35, size*0.3, 0, size*0.5, size*0.5, size*0.7);
+  glow.addColorStop(0, 'rgba(255,255,255,0.18)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  // Draw leaf / pin emoji as text
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${size * 0.52}px serif`;
+  ctx.fillText('🌿', size * 0.5, size * 0.48);
+
+  // Small pin dot below
+  ctx.beginPath();
+  ctx.arc(size * 0.5, size * 0.78, size * 0.06, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fill();
+
+  return canvas;
+}
+
+function generateAll() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  SIZES.forEach(size => {
+    const canvas = drawIcon(size);
+    canvases[size] = canvas;
+    const preview = document.createElement('canvas');
+    const previewSize = Math.min(size, 96);
+    preview.width = previewSize;
+    preview.height = previewSize;
+    const pCtx = preview.getContext('2d');
+    pCtx.drawImage(canvas, 0, 0, previewSize, previewSize);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'icon-wrap';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'btn btn-secondary';
+    dlBtn.style.cssText = 'padding:5px 10px;font-size:0.72rem;margin:0';
+    dlBtn.textContent = '⬇️ Save';
+    dlBtn.onclick = () => downloadIcon(size);
+
+    wrap.appendChild(preview);
+    wrap.appendChild(document.createTextNode(`icon-${size}.png`));
+    wrap.appendChild(dlBtn);
+    grid.appendChild(wrap);
+  });
+}
+
+function downloadIcon(size) {
+  const canvas = canvases[size] || drawIcon(size);
+  const a = document.createElement('a');
+  a.download = `icon-${size}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function downloadAll() {
+  if (Object.keys(canvases).length === 0) generateAll();
+  // Download individually with a small delay between each
+  for (let i = 0; i < SIZES.length; i++) {
+    setTimeout(() => downloadIcon(SIZES[i]), i * 200);
+  }
+}
+
+// Auto-generate on load
+window.onload = generateAll;
+</script>
+</body>
+</html>
